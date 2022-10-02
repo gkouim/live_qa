@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html ng-app="teachersApp">
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Σελίδα Καθηγητή</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <!-- <link rel='stylesheet' type='text/css' media='screen' href='main.css'> -->
+    <script src='/st/angular.min.js'></script>
+    <script src='/te/app.js'></script>
+    <style type="text/css">
+        .container {
+            padding: 10px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 400px;
+        }
+
+        .possible_answer + .possible_answer {
+            margin-top: 5px;
+        }
+
+        .possible_answer .x {
+            float: left;
+            border: 1px solid gray;
+            cursor: pointer;
+            margin-right: 10px;
+
+        }
+
+        .possible_answer .count {
+            float: right;
+            font-size: larger;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 5px;
+        }
+
+        form {
+            width: 100%;
+            position: relative;
+            margin-top: 10px;
+        }
+        
+        button, input[type="button"] {
+            border: none;
+        }
+
+        .inside_text {
+            position: absolute;
+            top: 2px;
+            right: -10px;
+            padding: 5px;
+        }
+
+
+    </style>
+</head>
+<body ng-controller="TeachersController">
+    <div class="container">
+        <h1>Σελίδα Καθηγητή</h1>
+        <div class="new_quest_data submitted-{{submitted}}">
+            <h2>υποβολή ερώτησης</h2>
+            <textarea ng-model="question.text" ng-disabled="submitted"></textarea>
+            <h3>δυνατές απαντήσεις</h3>
+            <div ng-repeat="q_opt in question.options" class="possible_answer">
+                <span class="x" ng-click="!submitted && remove_possible_answer($index)">x</span>
+                <span class="count">{{counts[q_opt]}}</span>
+                {{q_opt}}
+            </div>
+            <form ng-submit="add_possible_answer()">
+                <input type="text" ng-model="new_possible_answer" ng-disabled="submitted"/>
+                <button type="submit" class="inside_text" ng-disabled="submitted">προσθήκη</button>
+            </form>
+            <input type="button" value="αποστολή ερώτησης" style="margin-top: 10px; padding: 5px 0px"
+                ng-click="submit_new_question()" ng-disabled="submitted"/>
+            <input type="button" value="νέα ερώτηση" style="margin-top: 10px; padding: 5px 0px"
+                ng-click="cancel_question()" ng-show="submitted" ng-disabled="!submitted"/>    
+        </div>
+    </div>
+    
+    <!-- <h3>{{question.text}}</h3>
+    <div ng-repeat="option in question.options">
+        {{option}} - 
+        {{counts[option]}}
+    </div> -->
+</body>
+</html>
