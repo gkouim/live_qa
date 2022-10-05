@@ -2,7 +2,7 @@ var teachersApp = angular.module('teachersApp', []);
 
 
 
-teachersApp.controller('TeachersController',  function TeachersController($scope){
+teachersApp.controller('TeachersController',  function TeachersController($scope, $http){
     const ws = new WebSocket('ws://localhost:8080/teacher');
 
     $scope.submitted = false;
@@ -11,6 +11,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
         options: []
     };
     $scope.counts = {};
+    $scope.tags = [];
     
     $scope.add_possible_answer = function() {
         if( $scope.new_possible_answer) {
@@ -25,8 +26,18 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
 
     $scope.submit_new_question = function () {
         if(!$scope.question.text || !$scope.question.options.length) return;
-        ws.send( JSON.stringify($scope.question));
+        ws.send( JSON.stringify( {
+            type: 'question',
+            data: $scope.question
+        }));
         $scope.submitted = true;
+
+        if($scope.save_to_db) {
+            ws.send( JSON.stringify( {
+                type: 'save_to_db',
+                data: $scope.tags
+            }))
+        }
     }
 
     $scope.cancel_question = function () {
@@ -36,7 +47,58 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
             options: []
         };
         $scope.counts = {};
-        ws.send( JSON.stringify($scope.question));
+        $scope.tags = [];
+        $scope.save_to_db = false;
+        ws.send( JSON.stringify( {
+            type: 'question',
+            data: $scope.question
+        }) );
+    }
+
+    $scope.getAvailableTags = function () {
+        $http.get('/te/tags').then( (res) => {
+            $scope.availableTags = res.data;
+        });
+    }
+
+    $scope.getQuestionsOfTag = function(tag) {
+        $http.get('/te/questions', {params:{"tag":tag}}).then( (res) => {
+            $scope.availableQuestions = res.data.map( q => {
+                return {
+                    t_question: q.t_question,
+                    n_id: q.n_id,
+                    t_options: JSON.parse(q.t_options)
+                }
+            });
+        });
+    }
+
+    $scope.getLastQuestions = function() {
+        $http.get('/te/questions').then( (res) => {
+            $scope.availableQuestions = res.data.map( q => {
+                return {
+                    t_question: q.t_question,
+                    n_id: q.n_id,
+                    t_options: JSON.parse(q.t_options)
+                }
+            });
+        });
+    }
+
+    $scope.selectFromAvailable = function(q) {
+        $scope.submitted = true;
+        $scope.view = 'new_question';
+        $scope.question = {
+            text: q.t_question,
+            options: q.t_options
+        };
+        $scope.counts = {};
+        $scope.tags = [];
+        $scope.save_to_db = false;
+        ws.send( JSON.stringify( {
+            type: 'question',
+            data: $scope.question
+        }) );
     }
 
     ws.onopen = function() {
@@ -54,5 +116,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
         }
         $scope.$applyAsync();
     };
+
+    $scope.getAvailableTags();
 } );
 

@@ -12,6 +12,21 @@
         * {
             box-sizing: border-box;
         }
+        h2 {
+            display: inline-block;
+            font-size: medium;
+            cursor: pointer;
+            padding: 10px;
+            border-width: 2px 4px 0px 4px;
+            border-radius: 10px 10px 0px 0px;
+            border-style: solid;
+            border-color: lightgray;
+        }
+        h2.tab-true {
+            border-color: black;
+            background-color: black;
+            color: white;
+        }
         .container {
             padding: 10px;
             margin-left: auto;
@@ -28,57 +43,144 @@
             border: 1px solid gray;
             cursor: pointer;
             margin-right: 10px;
-
         }
 
         .possible_answer .count {
             float: right;
             font-size: larger;
         }
-        input, textarea {
+        input[type="text"], textarea {
             width: 100%;
             padding: 5px;
         }
 
-        form {
+        input:focus-visible, textarea:focus-visible {
+            outline: 0px;
+        }
+
+        label {
+            font-size: small;
+        }
+        .form_possible_answers {
             width: 100%;
             position: relative;
             margin-top: 10px;
+            white-space: nowrap;
         }
         
         button, input[type="button"] {
             border: none;
+            width: 100%;
         }
 
         .inside_text {
             padding: 7px;
         }
 
+        .tag {
+            padding: 0 5px; 
+            border-radius: 10px; 
+            border: 1px solid; 
+            background-color: lightgray; 
+            font-size: small;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .tag.white {
+            background-color: white;
+        }
 
+        .av-question {
+            border-top: 1px solid;
+            padding: 10px 4px;
+            cursor: pointer;
+            color: rgba(0,0,0,0.7);
+        }
+        .av-question span {
+            padding: 2px 5px;
+        }
+        .av-question:hover {
+            /* background-color: gray; */
+            color: black;
+        }
+        .av-question span + span {
+            border-left: 1px solid;
+        }
     </style>
 </head>
-<body ng-controller="TeachersController">
+<body ng-controller="TeachersController" ng-init="view='new_question'">
     <div class="container">
-        <h1>Σελίδα Καθηγητή</h1>
+        <h1>Δημιουργία Ερώτησης</h1>
         <div class="new_quest_data submitted-{{submitted}}">
-            <h2>υποβολή ερώτησης</h2>
-            <textarea ng-model="question.text" ng-disabled="submitted"></textarea>
-            <h3>δυνατές απαντήσεις</h3>
-            <div ng-repeat="q_opt in question.options" class="possible_answer">
-                <span class="x" ng-click="!submitted && remove_possible_answer($index)">x</span>
-                <span class="count">{{counts[q_opt]}}</span>
-                {{q_opt}}
+            <!-- tab menu -->
+            <div style="font-size: 0px;">
+                <h2 class="tab-{{view=='new_question'}}" ng-click="view='new_question'">υποβολή ερώτησης</h2> 
+                <h2 class="tab-{{view!='new_question'}}" ng-click="view='select_question'">αναζήτηση στη ΒΔ</h2>
             </div>
-            <form ng-submit="add_possible_answer()">
-                <input type="text" ng-model="new_possible_answer" ng-disabled="submitted"
-                    style="display: table-cell; width: 80%;"/>
-                <button type="submit" class="inside_text" ng-disabled="submitted"
-                    style="width: 20%">προσθήκη</button>
-            </form>
-            <input type="button" value="αποστολή ερώτησης" style="margin-top: 10px; padding: 5px 0px"
-                ng-click="submit_new_question()" ng-disabled="submitted"/>
-            <input type="button" value="νέα ερώτηση" style="margin-top: 10px; padding: 5px 0px"
-                ng-click="cancel_question()" ng-show="submitted" ng-disabled="!submitted"/>    
+
+            <!-- new question div -->
+            <div ng-show="view=='new_question'">
+                <label>ερώτηση</label>
+                <textarea ng-model="question.text" ng-disabled="submitted"></textarea>
+                <h3>δυνατές απαντήσεις</h3>
+                <div ng-repeat="q_opt in question.options" class="possible_answer">
+                    <span class="x" ng-click="!submitted && remove_possible_answer($index)">x</span>
+                    <span class="count">{{counts[q_opt]}}</span>
+                    {{q_opt}}
+                </div>
+                <form ng-submit="add_possible_answer()" class="form_possible_answers">
+                    <input type="text" ng-model="new_possible_answer" ng-disabled="submitted"
+                        style="display: table-cell; width: 80%;"/>
+                    <button type="submit" class="inside_text" ng-disabled="submitted"
+                        style="width: 20%">προσθήκη</button>
+                </form>
+                <div style="margin-top: 15px; position: relative; border: 1px solid; padding: 10px;">
+                    <span style="position: absolute; top: -10px; background-color: white; padding: 0 10px;">
+                        αποθήκευση σε ΒΔ
+                    </span>
+                    <input type="checkbox" ng-model="save_to_db" id="save_to_db" ng-disabled="submitted">
+                    <label for="save_to_db">ναι</label>
+                    <div ng-show="save_to_db" style="font-size: 0px;">
+                        <div style="width: 60%; display: inline-block; vertical-align: top;">
+                            <form ng-submit="tags.push(q_chapter); q_chapter=''">
+                                <label for="q_chapter">tags</label>
+                                <input type="text" ng-model="q_chapter" id="q_chapter" ng-disabled="submitted">
+                                <button type="submit" ng-show="false"></button>
+                            </form>
+                            <span class="tag white" ng-repeat="tag in tags" ng-click="!submitted && tags.splice($index,1)">{{tag}}</span>
+                        </div>
+                        <div style="width:40%; display: inline-block; padding-left: 10px;">
+                            <div><label>προς επιλογή</label></div>
+                            <span ng-repeat="tag in availableTags" ng-click="tags.push(tag)" class="tag white">{{tag}}</span>
+                        </div>
+                    </div>
+                </div>
+                <input type="button" value="αποστολή ερώτησης" style="margin-top: 10px; padding: 5px 0px"
+                    ng-click="submit_new_question()" ng-disabled="submitted"/>
+                <input type="button" value="νέα ερώτηση" style="margin-top: 10px; padding: 5px 0px"
+                    ng-click="cancel_question()" ng-show="submitted" ng-disabled="!submitted"/>    
+            </div>
+
+            <!-- select from db div -->
+            <div ng-show="view!='new_question'">
+                <div style="font-size: 0px">
+                    <div style="display: inline-block; width: 50%;">
+                        <label>αναζήτηση με tag <span ng-click="getAvailableTags()" style="cursor: pointer">&#10227;</span></label>
+                        <div>
+                            <span ng-repeat="tag in availableTags" class="tag white" ng-click="getQuestionsOfTag(tag)">{{tag}}</span>
+                        </div>
+                    </div>
+                    <div style="display: inline-block; border-left: 1px solid; width: 50%; padding-left: 10px; vertical-align: top;" >
+                        <label ng-click="getLastQuestions()" style="cursor: pointer">τελευταίες εγγραφές</label>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div ng-repeat="q in availableQuestions" class="av-question" ng-click="selectFromAvailable(q)">
+                        <div>{{q.t_question}}</div>
+                        <span ng-repeat="opt in q.t_options">{{opt}}</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
