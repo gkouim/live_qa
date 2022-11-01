@@ -3,7 +3,7 @@ var teachersApp = angular.module('teachersApp', []);
 
 
 teachersApp.controller('TeachersController',  function TeachersController($scope, $http){
-    const ws = new WebSocket('ws://localhost:8080/teacher');
+    const ws = new WebSocket('ws://localhost:8080');
 
     $scope.submitted = false;
     $scope.question = {
@@ -87,7 +87,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
 
     $scope.selectFromAvailable = function(q) {
         $scope.submitted = true;
-        $scope.view = 'new_question';
+        
         $scope.question = {
             text: q.t_question,
             options: q.t_options
@@ -99,10 +99,12 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
             type: 'question',
             data: $scope.question
         }) );
+        $scope.view = 'new_question';
+        // $scope.$applyAsync();
     }
 
     ws.onopen = function() {
-        
+        ws.send( JSON.stringify({teacher:true}));
         // ws.send( JSON.stringify($scope.question));
     };
 

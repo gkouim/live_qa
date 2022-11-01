@@ -1,7 +1,7 @@
 var testsApp = angular.module('testsApp', ['ngCookies']);
 
 testsApp.controller('TeachersController', function TeachersController($scope, $cookies){
-    const ws = new WebSocket('ws://192.168.1.71:8080/student');
+    const ws = new WebSocket('ws://localhost:8080');
 
 
     $scope.random_img = Math.floor( Math.random() * 7 );
@@ -19,6 +19,10 @@ testsApp.controller('TeachersController', function TeachersController($scope, $c
         options: []
    }
    */
+   ws.onopen = function() {
+        ws.send( JSON.stringify({student:true}));
+        // ws.send( JSON.stringify($scope.question));
+    };
     ws.onmessage = function(ev) {
         var msg = JSON.parse(ev.data);
         if(msg.type == 'lessons') {
