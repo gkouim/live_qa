@@ -136,18 +136,23 @@ wss_all.on( 'connection', function connection(_ws) {
             }
             _ws.onmessage = msgFromStudent;
         } else {
-            teacherWS = _ws;
-            if(question && question.text) {
+            if( msg.password && msg.password == 'giorgosk__') {
                 _ws.send(JSON.stringify({
-                    type: 'question',
-                    data: question
+                    type: 'validated',
                 }));
-                _ws.send(JSON.stringify({
-                    type: 'counts',
-                    data: counts
-                }));
+                teacherWS = _ws;
+                if(question && question.text) {
+                    _ws.send(JSON.stringify({
+                        type: 'question',
+                        data: question
+                    }));
+                    _ws.send(JSON.stringify({
+                        type: 'counts',
+                        data: counts
+                    }));
+                }
+                _ws.onmessage = msgFromTeacher;
             }
-            _ws.onmessage = msgFromTeacher;
         }
     }
 });
@@ -170,75 +175,6 @@ const interval = setInterval( function ping() {
 }, 300000);
 
 
-// wss_student.on('connection', function connection(_ws) {
-//     // _ws.send( JSON.stringify(
-//     //     {
-//     //         type: 'lessons',
-//     //         data: lessons
-//     //     }
-//     // ));
-
-//     _ws.on('message', function message(data) {
-//         ans = JSON.parse(data);
-//         ans = ans.answer;
-//         if(counts[ans]) {
-//             counts[ans] = counts[ans] + 1;
-//         } else {
-//             counts[ans] = 1;
-//         }
-//         teacherWS.send( JSON.stringify({
-//             type: 'counts',
-//             data: counts
-//         }) );
-//     });
-    
-//     if(question && question.text) {
-//         sendQuestionToClient(_ws);
-//     }
-    
-// });
-
-// wss_teacher.on('connection', function connection(_ws) {
-//     teacherWS = _ws;
-//     if(question && question.text) {
-//         _ws.send(JSON.stringify({
-//             type: 'question',
-//             data: question
-//         }));
-//         _ws.send(JSON.stringify({
-//             type: 'counts',
-//             data: counts
-//         }));
-//     }
-
-//     _ws.on('message', function message(data) {
-//         var msg = JSON.parse(data);
-//         if(msg.type=='question') {
-//             question = msg.data;
-//             wss_student.clients.forEach(client => {
-//                 sendQuestionToClient(client);
-//             });
-//         } else if( msg.type=='save_to_db') {
-//             db.serialize( () => {
-//                 var q_id;
-//                 db.run('insert into questions (t_question, t_options) values (?,?)',
-//                     [question.text, JSON.stringify(question.options)], (err)=>err && console.log(err));
-//                 db.get('select last_insert_rowid()', (err, row) => {
-//                     q_id = row['last_insert_rowid()'];
-//                     const stmt = db.prepare("insert into tags(n_qid, t_tag) values(?,?)");
-//                     const tags = msg.data;
-//                     tags.forEach(tag => {
-//                         stmt.run([q_id, tag]);
-//                     });
-//                     stmt.finalize();
-//                 });
-                
-//             });
-//         }
-        
-//     });
-// });
-
 var sendQuestionToClient = function(client) {
     if (client.readyState === ws.WebSocket.OPEN) {
         client.send( JSON.stringify(
@@ -250,21 +186,6 @@ var sendQuestionToClient = function(client) {
     }
 }
 
-// server.on('upgrade', function upgrade(request, socket, head) {
-//     const { pathname } = url.parse(request.url);
-
-//     if (pathname === '/teacher') {
-//         wss_teacher.handleUpgrade(request, socket, head, function done(ws) {
-//             wss_teacher.emit('connection', ws, request);
-//         });
-//     } else if (pathname === '/student') {
-//         wss_student.handleUpgrade(request, socket, head, function done(ws) {
-//             wss_student.emit('connection', ws, request);
-//         });
-//     } else {
-//         socket.destroy();
-//     }
-// });
 
 const port = process.env.PORT || 8080;
 

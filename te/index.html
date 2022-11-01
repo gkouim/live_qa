@@ -109,7 +109,14 @@
     </style>
 </head>
 <body ng-controller="TeachersController" ng-init="view='new_question'">
-    <div class="container">
+    <div class="container" ng-show="!validated">
+        <h1>προστατευμένη περιοχή</h1>
+        <form ng-submit="tryValidate()"> 
+            <label>κωδικός πρόσβασης</label>
+            <input type="password" ng-model="password"/>
+        </form>
+    </div>
+    <div class="container" ng-show="validated">
         <h1>Δημιουργία Ερώτησης</h1>
         <div class="new_quest_data submitted-{{submitted}}">
             <!-- tab menu -->
@@ -162,7 +169,7 @@
             </div>
 
             <!-- select from db div -->
-            <div ng-show="view!='new_question'">
+            <div ng-show="view=='select_question'">
                 <div style="font-size: 0px">
                     <div style="display: inline-block; width: 50%;">
                         <label>αναζήτηση με tag <span ng-click="getAvailableTags()" style="cursor: pointer">&#10227;</span></label>

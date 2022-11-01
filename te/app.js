@@ -3,8 +3,10 @@ var teachersApp = angular.module('teachersApp', []);
 
 
 teachersApp.controller('TeachersController',  function TeachersController($scope, $http){
-    const ws = new WebSocket('ws://localhost:8080');
+    // const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket('wss://q.gkouimtzis.sites.sch.gr');
 
+    $scope.validated = false;
     $scope.submitted = false;
     $scope.question = {
         text: '',
@@ -12,6 +14,13 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
     };
     $scope.counts = {};
     $scope.tags = [];
+
+    $scope.tryValidate = function() {
+        ws.send(JSON.stringify({
+            teacher: true,
+            password: $scope.password
+        }));
+    }
     
     $scope.add_possible_answer = function() {
         if( $scope.new_possible_answer) {
@@ -104,7 +113,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
     }
 
     ws.onopen = function() {
-        ws.send( JSON.stringify({teacher:true}));
+        // ws.send( JSON.stringify({teacher:true}));
         // ws.send( JSON.stringify($scope.question));
     };
 
@@ -115,6 +124,8 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
         } else if (msg.type == 'question') {
             $scope.question = msg.data;
             $scope.submitted = true;
+        } else if(msg.type=='validated') {
+            $scope.validated = true;
         }
         $scope.$applyAsync();
     };
