@@ -31,6 +31,9 @@
             left: -130px;
             width: 128px;
         }
+        img {
+            max-width: 100%;
+        }
     </style>
 </head>
 <body ng-controller="TeachersController">
@@ -49,6 +52,7 @@
                 <h2 class="question-text">
                     {{question.text}}
                 </h2>
+                <img ng-src="{{question.img_url}}" ng-show="question.img_url"/>
                 <div class="q-option-container">
                     <ul>
                         <li ng-repeat="option in question.options" class="q-option"

@@ -10,6 +10,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
     $scope.submitted = false;
     $scope.question = {
         text: '',
+        img_url: '',
         options: []
     };
     $scope.counts = {};
@@ -53,6 +54,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
         $scope.submitted = false;
         $scope.question = {
             text: '',
+            img_url: '',
             options: []
         };
         $scope.counts = {};
@@ -76,7 +78,8 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
                 return {
                     t_question: q.t_question,
                     n_id: q.n_id,
-                    t_options: JSON.parse(q.t_options)
+                    t_options: JSON.parse(q.t_options),
+                    t_img_url: q.t_img_url
                 }
             });
         });
@@ -88,7 +91,8 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
                 return {
                     t_question: q.t_question,
                     n_id: q.n_id,
-                    t_options: JSON.parse(q.t_options)
+                    t_options: JSON.parse(q.t_options),
+                    t_img_url: q.t_img_url
                 }
             });
         });
@@ -99,6 +103,7 @@ teachersApp.controller('TeachersController',  function TeachersController($scope
         
         $scope.question = {
             text: q.t_question,
+            img_url: q.t_img_url,
             options: q.t_options
         };
         $scope.counts = {};

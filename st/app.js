@@ -1,7 +1,8 @@
 var testsApp = angular.module('testsApp', ['ngCookies']);
 
 testsApp.controller('TeachersController', function TeachersController($scope, $cookies){
-    const ws = new WebSocket('ws://localhost:8080');
+    // const ws = new WebSocket('ws://localhost:8080');
+    const ws = new WebSocket('wss://q.gkouimtzis.sites.sch.gr');
 
 
     $scope.random_img = Math.floor( Math.random() * 7 );

@@ -106,6 +106,13 @@
         .av-question span + span {
             border-left: 1px solid;
         }
+        img {
+            max-width: 100%;
+        }
+        img.img-preview {
+            max-width: 30%;
+            float: right;
+        }
     </style>
 </head>
 <body ng-controller="TeachersController" ng-init="view='new_question'">
@@ -129,6 +136,9 @@
             <div ng-show="view=='new_question'">
                 <label>ερώτηση</label>
                 <textarea ng-model="question.text" ng-disabled="submitted"></textarea>
+                <label>url εικόνας</label>
+                <input type="text" ng-model="question.img_url" ng-disabled="submitted"/>
+                <img ng-src="{{question.img_url}}" ng-show="question.img_url"/>
                 <h3>δυνατές απαντήσεις</h3>
                 <div ng-repeat="q_opt in question.options" class="possible_answer">
                     <span class="x" ng-click="!submitted && remove_possible_answer($index)">x</span>
@@ -183,6 +193,7 @@
                 </div>
                 <div style="margin-top: 10px;">
                     <div ng-repeat="q in availableQuestions" class="av-question" ng-click="selectFromAvailable(q)">
+                        <img src="{{q.t_img_url}}" class="img-preview" />
                         <div>{{q.t_question}}</div>
                         <span ng-repeat="opt in q.t_options">{{opt}}</span>
                     </div>

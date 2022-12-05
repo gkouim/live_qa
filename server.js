@@ -14,7 +14,7 @@ getAllTags = function(req, res) {
 }
 
 getQuestionsOfTag = function(req, res, q) {
-    db.all('select n_id, t_question, t_options from questions where n_id in( select n_qid from tags where t_tag = ?)', [q.query.tag],
+    db.all('select n_id, t_question, t_options, t_img_url from questions where n_id in( select n_qid from tags where t_tag = ?)', [q.query.tag],
     (err, rows) => {
         res.writeHead(200,{ 'Content-Type': 'application/json'});
         res.end(")]}',\n" + JSON.stringify(rows) );
@@ -22,7 +22,7 @@ getQuestionsOfTag = function(req, res, q) {
 }
 
 getLastQuestions = function( req, res ) {
-    db.all('select n_id, t_question, t_options from questions order by n_id DESC limit 10', (err, rows) => {
+    db.all('select n_id, t_question, t_options, t_img_url from questions order by n_id DESC limit 10', (err, rows) => {
         res.writeHead(200,{ 'Content-Type': 'application/json'});
         res.end(")]}',\n" + JSON.stringify(rows) );
     });
@@ -104,8 +104,8 @@ msgFromTeacher = function (message) {
     } else if( msg.type=='save_to_db') {
         db.serialize( () => {
             var q_id;
-            db.run('insert into questions (t_question, t_options) values (?,?)',
-                [question.text, JSON.stringify(question.options)], (err)=>err && console.log(err));
+            db.run('insert into questions (t_question, t_options, t_img_url) values (?,?,?)',
+                [question.text, JSON.stringify(question.options), question.img_url], (err)=>err && console.log(err));
             db.get('select last_insert_rowid()', (err, row) => {
                 q_id = row['last_insert_rowid()'];
                 const stmt = db.prepare("insert into tags(n_qid, t_tag) values(?,?)");
