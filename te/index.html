@@ -193,7 +193,7 @@
                 </div>
                 <div style="margin-top: 10px;">
                     <div ng-repeat="q in availableQuestions" class="av-question" ng-click="selectFromAvailable(q)">
-                        <img src="{{q.t_img_url}}" class="img-preview" />
+                        <img ng-src="{{q.t_img_url}}" class="img-preview" />
                         <div>{{q.t_question}}</div>
                         <span ng-repeat="opt in q.t_options">{{opt}}</span>
                     </div>
