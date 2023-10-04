@@ -4,6 +4,9 @@
         "ws": "^8.9.0"
     },
 	"scripts": {
-		"dbu1": "node update_db_01.js"
+		"dbu1": "node update_db_01.js",
+        "dbu2": "node update_db_02.js",
+        "dbu3": "node update_db_03.js",
+        "dbu4": "node update_db_04.js"
 	}
 }

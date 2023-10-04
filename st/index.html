@@ -34,6 +34,76 @@
         img {
             max-width: 100%;
         }
+        .test {
+            border-top: 2px solid darkgray;
+            border-bottom: 2px solid darkgray;
+        }
+        .t-selected-true {
+            color: brown;
+            font-weight: bold;
+        }
+        input:focus-visible, textarea:focus-visible, button:focus-visible {
+            outline: 0px;
+        }
+        label {
+            font-size: small;
+        }
+        input {
+            width: 100%;
+        }
+        .form-error {
+            color: red;
+            font-size: small;
+        }
+        .user-ended-true .t-selected-true {
+            /* color: green; */
+        }
+        .user-ended-true .q-option:hover {
+            text-decoration: none;
+        }
+        .user-ended-true .q-option {
+            cursor: unset;
+        }
+        .user-ended-true {
+            /* background-color: ; */
+        }
+        .completed-true .q-result-true {
+            /* background-color: lightgreen; */
+        }
+        .completed-true .q-result-false {
+            /* background-color: lightpink; */
+        }
+        .completed-true .q-result-true .t-selected-true {
+            color: darkgreen;
+        }
+        .completed-true .q-result-true .t-selected-true::after {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-image: url('/st/check.png');
+            content: '';
+            background-size: 100%;
+            transform: translate(0,-20px);
+            
+        }
+        .completed-true .q-result-false .t-selected-true {
+            color: darkred;
+            text-decoration: line-through;
+        }
+        .completed-true .q-result-false .t-selected-true::after {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-image: url('/st/checkx.png');
+            content: '';
+            background-size: 100%;
+            transform: translate(0,-20px);
+            
+        }
+        .completed-true .q-result-false .q-option-correct-true {
+            color: darkgreen;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body ng-controller="TeachersController">
@@ -43,7 +113,7 @@
             {{ lesson }}
         </div>
     </div>
-    <div class="container">
+    <div class="container" ng-show="view=='question'">
         <div>
             <img src="/st/q0.png" class="left-image">
             <div>
@@ -65,6 +135,53 @@
             </div>
         </div>
     </div>
+    <!-- test prepare-->
+    <div class="container" ng-show="view=='test-prepare'">
+        <img src="/st/t0.png" class="left-image">
+        <h1>γράφουμε τεστ</h1>
+        <div><form ng-submit="test_login()">
+            <label for="">όνομα</label>
+            <input type="text" ng-model="test_student_name">
+            <label for="">κωδικός</label>
+            <input type="text" ng-model="test_enter_code">
+            <div class="form-error" ng-show="login_error">{{login_error}}</div>
+            <button type="submit">είσοδος</button>
+        </form></div>
+    </div>
+    <!-- test -->
+    <div class="container completed-{{test_completed}} user-ended-{{user_ended}}" ng-show="view == 'test-write'">
+        <img src="/st/t0.png" class="left-image">
+        <h1>γράφουμε τεστ</h1>
+        <h1 ng-show="test_completed">
+            αποτέλεσμα: {{completed_correct}} στις {{completed_total}}
+        </h1>
+        <div ng-repeat="q in test" class="test q-result-{{q.t_correct == q.t_selected}}">
+            <h3>{{$index + 1}}. {{q.t_question}}</h3>
+            <img ng-src="{{q.t_img_url}}" ng-show="q.t_img_url">
+            <ul>
+                <li ng-repeat="option in q.options" class="q-option t-selected-{{option==q.t_selected}} q-option-correct-{{option==q.t_correct}}" 
+                    ng-click="test_select_answer(q, option)">
+                    {{option}}
+                </li>
+            </ul>
+        </div>
+        <div ng-show="!user_ended">
+            <button ng-show="!test_end" style="width: 100%; font-size: large; margin: 5px 0px;"
+                ng-click="test_end = true">τέλος</button>
+            <div ng-show="test_end" style="background-color: red; color: white; font-size: large; text-align: center;">  
+                <div>είσαι σίγουρος; δεν θα μπορείς να κάνεις άλλες αλλαγές!</div>
+                <button style="margin: 15px; font-size: large;" ng-click="test_completed_f()">ναι είμαι σίγουρος</button>
+                <button style="font-size: large;" ng-click="test_end = false">όχι ακόμα</button>
+            </div>
+        </div>
 
+    </div>
+
+    <!-- websocket error div -->
+    <div class="container" ng-show="view=='websocket-error'">
+        <img src="/st/e0.png" class="left-image">
+        <h1>σφάλμα σύνδεσης με τον server</h1>
+        <div>κάνε ανανέωση της σελίδας για να συνεχίσεις</div>
+    </div>
 </body>
 </html>

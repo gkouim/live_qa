@@ -52,6 +52,7 @@
         input[type="text"], textarea {
             width: 100%;
             padding: 5px;
+            flex-shrink: 1;
         }
 
         input:focus-visible, textarea:focus-visible {
@@ -71,6 +72,13 @@
         button, input[type="button"] {
             border: none;
             width: 100%;
+            flex-shrink: 1;
+        }
+        button:hover, input[type="button"]:hover {
+            background-color: rgb(220,220,220);
+        }
+        button:active, input[type="button"]:active {
+            background-color: rgb(230,230,230);
         }
 
         .inside_text {
@@ -95,6 +103,7 @@
             padding: 10px 4px;
             cursor: pointer;
             color: rgba(0,0,0,0.7);
+            clear: both;
         }
         .av-question span {
             padding: 2px 5px;
@@ -106,12 +115,63 @@
         .av-question span + span {
             border-left: 1px solid;
         }
+        .select-for-test-true {
+            background-color: aliceblue;
+        }
+        .av-test {
+            clear: both;
+            padding: 10px 0px;
+            border-bottom: 1px solid darkgray;
+        }
         img {
             max-width: 100%;
         }
         img.img-preview {
             max-width: 30%;
             float: right;
+        }
+        .pointer-cursor {
+            cursor: pointer;
+        }
+        .flex {
+            display: flex;
+            align-items: center;
+        }
+        .flex * {
+            margin: 5px;
+        }
+        .f3 {
+            flex: 3;
+        }
+        .f1 {
+            flex: 1;
+        }
+        .student- {
+            color: unset;
+        }
+        .student-new {
+            color: green;
+        }
+        .student-new-code .st-code {
+            color: green;
+        }
+        th {
+            text-align: left;
+        }
+        button > .icon {
+            border-right: 1px solid darkgray; 
+            padding: 0px 5px; 
+            margin-right: 5px;
+        }
+        .select-correct-true .correct-true {
+            color: green;
+            font-weight: bold;
+        }
+        .select-correct-true > .av-question {
+            cursor: unset;
+        }
+        .select-correct-true  .option {
+            cursor: pointer;
         }
     </style>
 </head>
@@ -128,8 +188,9 @@
         <div class="new_quest_data submitted-{{submitted}}">
             <!-- tab menu -->
             <div style="font-size: 0px;">
-                <h2 class="tab-{{view=='new_question'}}" ng-click="view='new_question'">υποβολή ερώτησης</h2> 
-                <h2 class="tab-{{view!='new_question'}}" ng-click="view='select_question'">αναζήτηση στη ΒΔ</h2>
+                <h2 class="tab-{{view=='new_question'}}" ng-click="view='new_question'">νέα</h2> 
+                <h2 class="tab-{{view=='select_question'}}" ng-click="view='select_question'">αναζήτηση</h2>
+                <h2 class="tab-{{view=='test_tab'}}" ng-click="view='test_tab'">τεστ</h2>
             </div>
 
             <!-- new question div -->
@@ -180,6 +241,7 @@
 
             <!-- select from db div -->
             <div ng-show="view=='select_question'">
+                <button ng-show="select_for_test" ng-click="view='test_tab'">τέλος επιλογής</button>
                 <div style="font-size: 0px">
                     <div style="display: inline-block; width: 50%;">
                         <label>αναζήτηση με tag <span ng-click="getAvailableTags()" style="cursor: pointer">&#10227;</span></label>
@@ -188,14 +250,144 @@
                         </div>
                     </div>
                     <div style="display: inline-block; border-left: 1px solid; width: 50%; padding-left: 10px; vertical-align: top;" >
-                        <label ng-click="getLastQuestions()" style="cursor: pointer">τελευταίες εγγραφές</label>
+                        <div><label ng-click="getLastQuestions()" style="cursor: pointer">τελευταίες εγγραφές</label></div>
+                        <div>
+                            <label>
+                                <input type="checkbox" ng-model="select_correct"/>
+                                επιλογή σωστών απαντήσεων
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <div style="margin-top: 10px;">
-                    <div ng-repeat="q in availableQuestions" class="av-question" ng-click="selectFromAvailable(q)">
+                <!-- <div ng-click="select_correct = !select_correct;" style="margin-top: 10px; border-top: 1px solid darkgray" class="pointer-cursor">επιλογή σωστών απαντήσεων</div> -->
+                <div style="margin-top: 0px;" class="select-correct-{{select_correct}}">
+                    <div ng-repeat="q in availableQuestions" class="av-question select-for-test-{{select_for_test=='1' && test_includes(q)}}" 
+                        ng-click="!select_correct && (select_for_test=='1' ? selectForTest(q) : selectFromAvailable(q) )">
                         <img ng-src="{{q.t_img_url}}" class="img-preview" />
                         <div>{{q.t_question}}</div>
-                        <span ng-repeat="opt in q.t_options">{{opt}}</span>
+                        <span ng-repeat="opt in q.t_options" 
+                            ng-click="select_correct && select_correct_f(q,opt)"
+                            class="option correct-{{opt==q.t_correct}}">{{opt}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- test tab -->
+            <div ng-show="view=='test_tab'" ng-init="select_for_test = false;">
+                <button ng-show="!select_for_test" ng-click="select_for_test = true; view='select_question' ">επιλογή ερωτήσεων για νέο τεστ</button>
+                <div ng-show="select_for_test" style="margin-bottom: 5px;">
+                    <label>κωδικός τεστ</label>
+                    <input type="text" ng-model="test_code" />
+                    <div style="font-size: 0px;">
+                        <button ng-click="save_test(); select_for_test = false; test=[]; get_av_tests()" style="width: 50%; border-right: 1px solid black;">αποθήκευση</button>
+                        <button ng-click="select_for_test = false; test=[]" style="width: 50%">ακύρωση</button>
+                    </div>
+                </div>
+                <div ng-show="select_for_test" ng-repeat="q in test" class="av-question" ng-click="selectForTest(q)">
+                    <img ng-src="{{q.t_img_url}}" class="img-preview" />
+                    <div>{{q.t_question}}</div>
+                    <span ng-repeat="opt in q.t_options">{{opt}}</span>
+                </div>
+                <div ng-show="!select_for_test">
+                    <div ng-repeat="t in av_tests" class="av-test">
+                        <div style="display: flex;">
+                            <div ng-click="t.show=='questions'?t.show='':t.show='questions'" class="pointer-cursor" style="font-weight: bold; flex-shrink: 1; width: 100%;">
+                                {{t.test_id}}
+                            </div>
+                            <div style="flex-shrink: 0;">
+                                <span class="fi pointer-cursor" ng-click="delete_test(t); get_av_tests()">&#x1F5F4;</span>
+                                <span class="fi pointer-cursor" 
+                                    ng-click="t.show=='classes'?t.show='':t.show='classes'">&#x1F5CA;</span>
+
+                                <span class="fi pointer-cursor" ng-click="t.show=='send'?t.show='':t.show='send'">&#x1F585;</span>
+                                <span class="fi pointer-cursor" ng-click="t.show=='grades'?t.show='':t.show='grades'">&#9331;</span>
+                            </div>
+                        </div>
+                        <!-- ερωτήσεις του τεστ -->
+                        <div ng-show="t.show=='questions'" ng-repeat="q in t.questions" style="clear: both; padding-left: 5px;">
+                            {{$index+1}}. {{q.question}}
+                            <img ng-src="{{q.image}}" class="img-preview"/>
+                        </div>
+                        <!-- μαθητές και τάξεις του τεστ -->
+                        <div ng-show="t.show=='classes'">
+                            <form ng-submit="get_tests_students(t)">
+                                <div class="flex">
+                                    <label>χρονιά</label>
+                                    <input ng-model="t.test_year" type="text" />
+                                    <label>τάξη</label>
+                                    <input ng-model="t.test_class" type="text"/>
+                                    <button style="flex-shrink: 2" type="submit">&#8981;</button>
+                                </div>
+                            </form>
+                            <div>
+                                <table style="width: 100%">
+                                    <tr>
+                                        <th style="width: 75%">μαθητής</th><th>κωδικός</th>
+                                    </tr>
+                                    <tr ng-repeat="st in t.students" class="student-{{st.t_status}}">
+                                        <td>{{st.t_student_name}}</td>
+                                        <td class="st-code">{{st.t_enter_code}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>&nbsp;</td>
+                                        <td><button ng-click="save_tests_students(t)">αποθήκευση</button></td>
+                                </table>
+                                <form ng-submit="add_student_to_test(t)">
+                                    <div>
+                                        <label>νέος μαθητής</label>
+                                        <input ng-model="t.new_student" type="text"/>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        <!-- αποστολή του τεστ -->
+                        <div ng-show="t.show=='send'"><form ng-submit="send_test(t);">
+                            <div class="flex">
+                                <label>χρονιά</label>
+                                <input type="text" ng-model="t.send_year" ng-disabled="t.sent"/>
+                                <label>τάξη</label>
+                                <input type="text" ng-model="t.send_class" ng-disabled="t.sent"/>
+                            </div>
+                            <div style="text-align: right">
+                                <button type="submit" style="width:unset" ng-disabled="t.sent">
+                                    <span class="icon">&#x1F585;</span>αποστολή 
+                                </button>
+                            </div></form>
+                            <div ng-show="t.sent" class="flex">
+                                <div class="f1">έναρξη: {{t.sent | date:'h:m a'}}</div>
+                                <div class="f1">διάρκεια: {{t.duration | date:'m λ:s δ'}} </div>
+                                <div>
+                                    <button style="width:unset" ng-click="test_end(t)">τέλος</button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- βαθμοι μαθητών -->
+                        <div ng-show="t.show=='grades'">
+                            <form ng-submit="get_students_grades(t)">
+                                <div class="flex">
+                                    <label>χρονιά</label>
+                                    <input ng-model="t.test_year" type="text" />
+                                    <label>τάξη</label>
+                                    <input ng-model="t.test_class" type="text"/>
+                                    <button style="flex-shrink: 2" type="submit">&#8981;</button>
+                                </div>
+                            </form>
+                            <div>
+                                <table style="width: 100%">
+                                    <tr>
+                                        <th>μαθητής</th>
+                                        <th>ερωτήσεις</th>
+                                        <th>απαντήσεις</th>
+                                        <th>σωστές</th>
+                                    </tr>
+                                    <tr ng-repeat="g in t.grades">
+                                        <td>{{g.t_student_name}}</td>
+                                        <td>{{g.q_total}}</td>
+                                        <td>{{g.q_answered}}</td>
+                                        <td>{{g.q_correct}}</td>
+                                    </tr>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
