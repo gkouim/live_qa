@@ -1,55 +1,57 @@
 var http = require('http');
-var ws = require('ws');
 var fs = require('fs');
 var url = require('url');
+const {Server} = require('socket.io');
+
 var sqlite = require('sqlite3');
 
 const db = new sqlite.Database('app.db');
 
+
 getAllTags = function() {
     db.all( 'select distinct t_tag from tags', (err, rows) => {
-        teacherWS.send( JSON.stringify( {
+        teacherWS.emit( 'db-all-tags', {
             type: 'db-all-tags',
             data: rows.map(item => item.t_tag)
-        } ) );
+        } );
     });
 }
 
 getQuestionsOfTag = function(q) {
     db.all('select n_id, t_question, t_options, t_img_url, t_correct from questions where n_id in( select n_qid from tags where t_tag = ?)', [q],
     (err, rows) => {
-        teacherWS.send( JSON.stringify({
+        teacherWS.emit( 'db-tag-questions', {
             type: 'db-tag-questions',
             data: rows
-        }));
+        });
     });
 }
 
 getLastQuestions = function( req, res ) {
     db.all('select n_id, t_question, t_options, t_img_url, t_correct from questions order by n_id DESC limit 10', (err, rows) => {
-        teacherWS.send( JSON.stringify({
+        teacherWS.emit( 'db-last-questions', {
             type: 'db-last-questions',
             data: rows
-        }));
+        });
     });
 }
 
 getTests = function( req, res ) {
     db.all('select t.v_testid as test_id, group_concat(q.t_question, "|") as questions, group_concat(ifnull(q.t_img_url, ""), "|") as images from tests t, questions q where t.n_qid = q.n_id group by t.v_testid',
     (err, rows) => {
-        teacherWS.send( JSON.stringify({
+        teacherWS.emit( 'db-tests', {
             type: 'db-tests',
             data: rows
-        }));
+        });
         if( test ) {
-            teacherWS.send( JSON.stringify( {
+            teacherWS.emit( 'test-running',  {
                 type: 'test-running',
                 data: {
                     test: test.test_id,
                     year: test.year,
                     class: test.class
                 }
-            }));
+            });
         }
     });
 }
@@ -61,6 +63,7 @@ getQuestions = function (req, res, q) {
         getLastQuestions(req, res);
     }
 }
+
 requestListener = function (req, res) {
     var q = url.parse(req.url, true);
 
@@ -84,6 +87,8 @@ requestListener = function (req, res) {
 
 server = http.createServer(requestListener);
 
+const io = new Server(server);
+
 var lessons = ['Πληροφορική', 'Φυσική', 'Γυμναστική']; //TODO 
 
 var question = null;
@@ -93,74 +98,78 @@ var studentsWS = [];
 // {year, class, test_id, questions}
 var test = null;
 
-wss_all = new ws.WebSocketServer( {server} );
+const STUDENTS_ROOM = 'students';
+// wss_all = new ws.WebSocketServer( {server} );
 //wss_teacher = new ws.WebSocketServer({ noServer: true });
 //wss_student = new ws.WebSocketServer({ noServer: true });
 
 
-msgFromStudent = function (message) {
+student_listeners = function (ws) {
     // console.log('student msg');
-    msg = JSON.parse(message.data);
-    if( msg.type == 'answer') {
+    ws.on('answer', (msg) => {
         ans = msg.answer;
         if(counts[ans]) {
             counts[ans] = counts[ans] + 1;
         } else {
             counts[ans] = 1;
         }
-        teacherWS.send( JSON.stringify({
+        teacherWS.emit( 'counts', {
             type: 'counts',
             data: counts
-        }) );
-    } else if (msg.type == 'test-login') {
+        });
+    });
+
+    ws.on('test-login', (msg) => {
         if(!test) return;
         db.get(`select n_sid from students, tests_students where n_sid=n_student_id and
                 t_student_name=? and t_class=? and t_year=? and t_enter_code=? and v_testid=?`,
                 [msg.data.student_name, test.class, test.year, msg.data.enter_code, test.test_id],
                 (err,rows) => {
                     if(!rows) {
-                        this.send( JSON.stringify({
+                        ws.emit( 'test-login-failed', {
                             type: 'test-login-failed'
-                        }));
+                        });
                     } else {
-                        this.test = {
+                        ws.test = {
                             student_id: rows.n_sid
                         };
-                        this.send( JSON.stringify ( {
+                        ws.emit( 'test-questions', {
                             type: 'test-questions',
                             data: test.questions
-                        }));
+                        });
                         db.all(`select n_question_id, t_answer from tests_students_answers
                             where n_student_id = ? and v_testid = ?`,
-                            [this.test.student_id, test.test_id],
+                            [ws.test.student_id, test.test_id],
                             (err, rows) => {
-                                this.send( JSON.stringify({
+                                ws.emit( 'test-student-answers', {
                                     type: 'test-student-answers',
                                     data: rows
-                                }));
-                            });
+                                });
+                        });
                     }
                 });
-    } else if (msg.type == 'test-answer') {
-        if(!test || !this.test || !this.test.student_id) return;
+    });
+
+    ws.on('test-answer', (msg) => {
+        if(!test || !ws.test || !ws.test.student_id) return;
         db.serialize( () => {
         db.run(`insert into tests_students_answers (v_testid, n_student_id, n_question_id, t_answer)
             values (?,?,?,?) on conflict do update set t_answer = excluded.t_answer`,
-            [test.test_id, this.test.student_id, msg.data.question, msg.data.answer]);
+            [test.test_id, ws.test.student_id, msg.data.question, msg.data.answer]);
         });
-    }
+    });
 };
 
-msgFromTeacher = function (message) {
+
+teacher_listeners = function (ws) {
     // console.log('teacher msg');
-    var msg = JSON.parse(message.data);
-    if(msg.type=='question') {
+    ws.on( 'question', (msg) => {
         if(test) return;
         question = msg.data;
-        studentsWS.forEach(client => {
-            sendQuestionToClient(client);
-        });
-    } else if( msg.type=='save_to_db') {
+        sendQuestionToClient(null);
+    } );
+
+    ws.on( 'save_to_db', (msg) => {
         if(!question) return;
         db.serialize( () => {
             var q_id;
@@ -177,18 +186,23 @@ msgFromTeacher = function (message) {
             });
             
         });
-    } else if (msg.type=='test_new') {
+    });
+
+    ws.on( 'test_new', (msg) => {
         const stmt = db.prepare("insert into tests(v_testid, n_qid) values (?,?)");
         msg.data.questions.forEach( qid => {
             stmt.run([msg.data.v_testid, qid]);
         });
         stmt.finalize();
-    } else if (msg.type == 'test_delete') {
+    } );
+
+    ws.on( 'test_delete', (msg) => {
         db.run("delete from tests where v_testid = ?", [msg.data.v_testid]);
         db.run("delete from tests_students where v_testid=?", [msg.data.v_testid]);
         db.run("delete from tests_students_answers where v_testid=?", [msg.data.v_testid]);
-        
-    } else if( msg.type == 'test_send') {
+    });
+
+    ws.on( 'test_send', (msg) => {
         db.all('select n_id, t_question, t_options, t_img_url, t_correct from tests, questions where tests.n_qid = questions.n_id and tests.v_testid = ?' ,
         [msg.data.v_testid], (err, rows) => {
             question = null;
@@ -211,18 +225,17 @@ msgFromTeacher = function (message) {
                     };
                 })
             }
-            studentsWS.forEach(client => {
-                client.send( JSON.stringify( {
-                    type: 'test-prepare',
-                    data: {
-                        year: test.year,
-                        class: test.class
-                    }
-                }));
-                // sendTestToClient(client, rows);
+            io.to(STUDENTS_ROOM).emit('test-prepare', {
+                type: 'test-prepare',
+                data: {
+                    year: test.year,
+                    class: test.class
+                }
             });
         })
-    } else if (msg.type == 'tests_students_set') {
+    });
+
+    ws.on( 'tests_students_set', (msg) => {
         data = msg.data;
         if(!data.students || !data.students.length) return;
         db.serialize( () => {
@@ -236,14 +249,15 @@ msgFromTeacher = function (message) {
                     });
             });
         });
-    } else if(msg.type == 'tests_students_get') {
-        // this is the websocket !!!
+    });
+
+    ws.on( 'tests_students_get', (msg) => {
         db.all(`select n_sid as n_student_id, t_student_name, t_enter_code 
         from students left outer join tests_students on n_sid = tests_students.n_student_id and v_testid=?
         where t_class=? and t_year=?`, 
         [msg.data.test, msg.data.class, msg.data.year ],
         (err,rows) => {
-            this.send( JSON.stringify({
+            ws.emit( 'tests_students_get_response', {
                 type: 'tests_students_get_response',
                 data: {
                     test: msg.data.test,
@@ -251,13 +265,16 @@ msgFromTeacher = function (message) {
                     class: msg.data.class,
                     students: rows
                 }
-            }));
+            });
         });
-    } else if (msg.type == 'test_end' ) {
+    });
+
+    ws.on( 'test_end', async (msg) => {
         test_id = test.test_id;
         corrects = test.corrects;
         test = null;
-        studentsWS.forEach(client => {
+        const st_soc = await io.in(STUDENTS_ROOM).fetchSockets();
+        st_soc.forEach(client => {
             if(client.test) {
                 student_id = client.test.student_id;
                 db.get(`SELECT ts.n_student_id,  count(*) as q_total, count(tsa.t_answer) as q_answered,
@@ -269,37 +286,49 @@ msgFromTeacher = function (message) {
                 and ts.n_student_id = ?
                 GROUP by ts.n_student_id
                 `, [test_id, student_id], (err,row) => {
-                    client.send(JSON.stringify({
+                    client.emit('test_end', {
                         type: 'test_end',
                         results: row,
                         corrects: corrects
-                    }));
+                    });
                 })
                 client.test = null;
             }
         })
-    } else if (msg.type == 'db-all-tags-get' ) {
+    });
+
+    ws.on('db-all-tags-get', (msg) => {
         getAllTags();
-    } else if (msg.type == 'db-tag-questions-get') {
+    } );
+
+    ws.on( 'db-tag-questions-get', (msg) => {
         getQuestionsOfTag(msg.data.tag);
-    } else if (msg.type == 'db-last-questions-get') {
+    });
+
+    ws.on('db-last-questions-get', (msg) => {
         getLastQuestions();
-    } else if (msg.type == 'db-tests-get') {
+    });
+
+    ws.on( 'db-tests-get', (msg) => {
         getTests();
-    } else if (msg.type == 'question-select-answer') {
+    }) ;
+
+    ws.on('question-select-answer', (msg) => {
         db.run('update questions set t_correct = ? where n_id = ?',
         [msg.data.correct, msg.data.question], (err) => {
             if(!err) {
-                teacherWS.send( JSON.stringify({
+                teacherWS.emit( 'question-select-answer', {
                     type: 'question-select-answer',
                     data: {
                         question: msg.data.question,
                         correct: msg.data.correct
                     }
-                }));
+                });
             }
         });
-    } else if( msg.type == 'tests_students_grades') {
+    });
+    
+    ws.on('tests_students_grades', (msg)=> {
         db.all(`SELECT ts.n_student_id,  s.t_student_name, count(*) as q_total, count(tsa.t_answer) as q_answered,
         sum( CASE WHEN tsa.t_answer = q.t_correct THEN 1 else 0 END ) as q_correct
         FROM tests_students ts, students s, tests t, questions q
@@ -310,7 +339,7 @@ msgFromTeacher = function (message) {
         and s.t_year = ?
         GROUP by ts.n_student_id
         `, [msg.data.test, msg.data.class, msg.data.year], (err, rows) => {
-            teacherWS.send( JSON.stringify({
+            teacherWS.emit( 'tests_students_grades_get', {
                 type: 'tests_students_grades_get',
                 data: {
                     test: msg.data.test,
@@ -318,84 +347,67 @@ msgFromTeacher = function (message) {
                     year: msg.data.year,
                     grades: rows
                 }
-            }));
+            });
         });
-    }
+    });
+    
 };
 
-wss_all.on( 'connection', function connection(_ws) {
+io.on( 'connection', function connection(_ws) {
 
-    _ws.isAlive = true;
-    _ws.on('pong', heartBeat);
-
-    _ws.onmessage = function (message) {
-
-        // console.log('first on message' + message.data);
-        msg = JSON.parse(message.data);
+    _ws.once("choosepart", (msg) => {
         if(msg.student) {
-            studentsWS.push(_ws);
+            _ws.join(STUDENTS_ROOM);
+            // studentsWS.push(_ws);
             if(question && question.text) {
                 sendQuestionToClient(_ws);
             } else if (test) {
-                _ws.send(JSON.stringify({
+                _ws.emit( 'test-prepare', {
                     type: 'test-prepare',
                     data: {
                         year: test.year,
                         class: test.class
                     }
-                }))
+                });
             }
-            _ws.onmessage = msgFromStudent;
+            student_listeners(_ws);
         } else {
             if( msg.password && msg.password == 'giorgosk__') {
-                _ws.send(JSON.stringify({
+                _ws.emit('validated', {
                     type: 'validated',
-                }));
+                });
                 teacherWS = _ws;
                 getAllTags();
                 getTests();
                 if(question && question.text) {
-                    _ws.send(JSON.stringify({
+                    _ws.emit('question', {
                         type: 'question',
                         data: question
-                    }));
-                    _ws.send(JSON.stringify({
+                    });
+                    _ws.emit( 'counts', {
                         type: 'counts',
                         data: counts
-                    }));
+                    });
                 }
-                _ws.onmessage = msgFromTeacher;
+                teacher_listeners(_ws);
             }
         }
-    }
-});
-
-function heartBeat() {
-    this.isAlive = true;
-}
-
-const interval = setInterval( function ping() {
-    console.log('pre check live ws: ' + studentsWS.length );
-    studentsWS.forEach( (_ws, idx) => {
-        if( _ws.isAlive == false ) {
-            studentsWS.splice(idx, 1);
-            return _ws.terminate();
-        }
-        _ws.isAlive = false;
-        _ws.ping();
     });
-    console.log('after check live ws: ' + studentsWS.length );
-}, 300000);
+
+});
 
 
 var sendQuestionToClient = function(client) {
-    if (client.readyState === ws.WebSocket.OPEN) {
-        client.send( JSON.stringify(
-            {
+    if(client) {
+        client.emit( 'question', {
                 type: 'question',
                 data: question
-            }
-        ));
+            });
+    } else {
+        io.to(STUDENTS_ROOM).emit( 'question', {
+            type: 'question',
+            data: question
+        });
     }
 }
 

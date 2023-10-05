@@ -1,12 +1,14 @@
 {
     "dependencies": {
+        "socket.io": "^4.7.2",
         "sqlite3": "^5.1.2",
         "ws": "^8.9.0"
     },
-	"scripts": {
-		"dbu1": "node update_db_01.js",
+    "scripts": {
+        "dbcr": "node create_db.js",
+        "dbu1": "node update_db_01.js",
         "dbu2": "node update_db_02.js",
         "dbu3": "node update_db_03.js",
         "dbu4": "node update_db_04.js"
-	}
+    }
 }
