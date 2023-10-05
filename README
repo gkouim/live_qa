@@ -1,0 +1,15 @@
+This is a web project consisting of two pages:
+
+/te/index.html
+is the teacher's page.
+A teacher can send questions to the students, save questions to db and create test for the students to take.
+Teacher's page is password protected and the password can be set in the server.js file.
+
+/st/index.html
+is the student's page.
+Students answer to questions sent by the teacher or take tests created by the teacher
+
+working example can be found at:
+[student's page](https://q.gkouimtzis.sites.sch.gr/st/index.html)
+[teacher's page](https://q.gkouimtzis.sites.sch.gr/te/index.html)
+reminder: teacher's page is password protected. Fork the project and change the password in server.js file to test the teacher's page.
