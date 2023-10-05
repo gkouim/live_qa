@@ -2,6 +2,7 @@ var http = require('http');
 var fs = require('fs');
 var url = require('url');
 const {Server} = require('socket.io');
+const {createHmac} = require('node:crypto');
 
 var sqlite = require('sqlite3');
 
@@ -372,7 +373,7 @@ io.on( 'connection', function connection(_ws) {
             }
             student_listeners(_ws);
         } else {
-            if( msg.password && msg.password == 'giorgosk__') {
+            if( msg.password && createHmac('sha256', msg.password).digest('hex') == 'fa85ebbc6e6ac86c25ba13a09902f496a94d382adcd132b2a8a525fc4f978108') {
                 _ws.emit('validated', {
                     type: 'validated',
                 });
